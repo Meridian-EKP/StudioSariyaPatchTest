@@ -313,7 +313,7 @@
                                 </svg>
                             </div>
                             <span class="ml-3 text-gray-200 group-hover:text-pink-300">
-                                I can confirm i will have a patch test 24hrs before my lash procedure. <span class="text-red-400">*</span>
+                                I can confirm I have received a patch test at least 24hrs prior to my lash procedure and confirm no reactions occurred. <span class="text-red-400">*</span>
                             </span>
                         </label>
                     </div>
@@ -415,6 +415,7 @@
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const submitButton = document.getElementById('submitButton');
+        const formspreeEndpoint = 'https://formspree.io/f/xwvepnlr'; // Replace with your active Formspree form ID if needed
 
         // Set today's date as default
         const dateInput = document.getElementById('date');
@@ -481,22 +482,18 @@
             submitButton.textContent = 'Submitting...';
             submitButton.classList.add('opacity-75', 'cursor-not-allowed');
 
-            // Prepare form data for Formspree
+            // Prepare form data for Formspree (send as multipart/form-data)
+            // IMPORTANT: We request JSON to prevent Formspree redirecting to /thanks (which triggers CORS errors in fetch).
             const formData = new FormData(form);
-            const data = new URLSearchParams();
-            
-            for (const [key, value] of formData.entries()) {
-                data.append(key, value);
-            }
 
             try {
-                // Formspree endpoint
-                const response = await fetch('https://formspree.io/f/xwvepnlr', {
+                // Submit to Formspree
+                const response = await fetch(formspreeEndpoint, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json',
                     },
-                    body: data.toString()
+                    body: formData
                 });
 
                 if (response.ok) {
@@ -512,11 +509,14 @@
                         successMessage.classList.add('hidden');
                     }, 5000);
                 } else {
-                    throw new Error('Form submission failed');
+                    const errorText = await response.text();
+                    console.error('Formspree error:', response.status, errorText);
+                    throw new Error(`Form submission failed with status ${response.status}`);
                 }
             } catch (error) {
+                console.error('Submission error:', error);
                 errorMessage.classList.remove('hidden');
-                errorMessage.textContent = 'There was an error submitting your form. Please try again or contact us directly.';
+                errorMessage.textContent = 'There was an error submitting your form (our form service returned an error). Please try again, and if it continues, contact us directly to book.';
                 errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } finally {
                 // Reset button state
@@ -528,6 +528,3 @@
     </script>
 </body>
 </html>
-
-
-
